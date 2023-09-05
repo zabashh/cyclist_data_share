@@ -1,0 +1,408 @@
+---
+title: "DataAnalysis"
+author: "zohaib"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+# Load the data
+
+data_jan <- read.csv("202101-divvy-tripdata.csv")
+data_feb <- read.csv("202102-divvy-tripdata.csv")
+data_mar <- read.csv("202103-divvy-tripdata.csv")
+```
+
+```{r}
+
+# Combine data for all three months into one dataframe
+all_data <- rbind(data_jan, data_feb, data_mar)
+
+```
+
+```{r}
+
+# To preview the data
+head(all_data)
+
+```
+
+```{r}
+
+# To get Dimensions
+dim(all_data)
+
+```
+
+```{r}
+
+#To get Summary of Data
+summary(all_data)
+
+```
+
+
+```{r}
+
+# To understand Data Structure
+column_names <- colnames(all_data)
+print(column_names)
+
+```
+
+```{r}
+
+# Filter data for annual members
+annual_members_data <- all_data[all_data$member_casual == "member", ]
+
+```
+
+
+```{r}
+
+# Filter data for casual riders
+casual_riders_data <- all_data[all_data$member_casual == "casual", ]
+
+```
+
+```{r}
+
+# Convert started_at and ended_at to POSIXct datetime objects
+all_data$started_at <- as.POSIXct(all_data$started_at, format = "%Y-%m-%d %H:%M:%S")
+all_data$ended_at <- as.POSIXct(all_data$ended_at, format = "%Y-%m-%d %H:%M:%S")
+
+```
+
+```{r}
+
+# Calculate ride duration in seconds
+all_data$ride_duration <- as.numeric(difftime(all_data$ended_at, all_data$started_at, units = "secs"))
+
+```
+
+```{r}
+
+# Check the first few rows to verify the ride_duration calculation
+head(all_data)
+
+```
+
+```{r}
+
+# The average ride durations for annual members and casual riders
+
+# Calculate ride duration in minutes
+all_data$ride_duration_minutes <- all_data$ride_duration / 60
+
+```
+
+
+```{r}
+
+# Calculate average ride duration for annual members in minutes
+average_duration_annual <- mean(all_data$ride_duration_minutes[all_data$member_casual == "member"], na.rm = TRUE)
+
+```
+
+
+```{r}
+
+# Calculate average ride duration for casual riders in minutes
+average_duration_casual <- mean(all_data$ride_duration_minutes[all_data$member_casual == "casual"], na.rm = TRUE)
+
+```
+
+```{r}
+
+# Print the results
+cat("Average Ride Duration for Annual Members:", round(average_duration_annual, 2), "minutes\n")
+cat("Average Ride Duration for Casual Riders:", round(average_duration_casual, 2), "minutes\n")
+
+```
+
+```{r}
+# Summary table of rideable type preferences for each user group
+bike_preferences <- aggregate(ride_id ~ rideable_type + member_casual, data = all_data, FUN = length)
+
+```
+
+```{r}
+
+# Create a stacked bar chart
+library(ggplot2)
+ggplot(bike_preferences, aes(x = rideable_type, y = ride_id, fill = member_casual)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Bike Preferences by User Type", x = "Rideable Type", y = "Number of Rides") +
+  scale_fill_manual(values = c("member" = "blue", "casual" = "red")) +
+  theme_minimal()
+
+```
+
+
+```{r}
+
+# For annual members
+annual_members_start_stations <- aggregate(ride_id ~ start_station_name, data = annual_members_data, FUN = length)
+annual_members_end_stations <- aggregate(ride_id ~ end_station_name, data = annual_members_data, FUN = length)
+
+# For casual riders
+casual_riders_start_stations <- aggregate(ride_id ~ start_station_name, data = casual_riders_data, FUN = length)
+casual_riders_end_stations <- aggregate(ride_id ~ end_station_name, data = casual_riders_data, FUN = length)
+
+```
+
+
+```{r}
+
+# Combine start and end station counts for annual members
+annual_members_station_counts <- merge(annual_members_start_stations, annual_members_end_stations, by.x = "start_station_name", by.y = "end_station_name", all = TRUE)
+annual_members_station_counts[is.na(annual_members_station_counts)] <- 0
+
+# Combine start and end station counts for casual riders
+casual_riders_station_counts <- merge(casual_riders_start_stations, casual_riders_end_stations, by.x = "start_station_name", by.y = "end_station_name", all = TRUE)
+casual_riders_station_counts[is.na(casual_riders_station_counts)] <- 0 
+
+```
+
+
+```{r}
+
+# Top start stations for annual members
+library(dplyr)
+top_start_stations_annual <- head(arrange(annual_members_station_counts, desc(ride_id.x)), 10)
+
+```
+
+```{r}
+# Top end stations for annual members
+top_end_stations_annual <- head(arrange(annual_members_station_counts, desc(ride_id.y)), 10)
+
+```
+
+```{r}
+
+# Top start stations for casual riders
+top_start_stations_casual <- head(arrange(casual_riders_station_counts, desc(ride_id.x)), 10)
+
+```
+
+```{r}
+
+# Top end stations for casual riders
+top_end_stations_casual <- head(arrange(casual_riders_station_counts, desc(ride_id.y)), 10)
+
+```
+
+
+```{r}
+
+# Create bar charts for top start stations
+ggplot(top_start_stations_annual, aes(x = reorder(start_station_name, -ride_id.x), y = ride_id.x, fill = "Annual Members")) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top Start Stations for Annual Members", x = "Station Name", y = "Number of Rides") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(top_start_stations_casual, aes(x = reorder(start_station_name, -ride_id.x), y = ride_id.x, fill = "Casual Riders")) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top Start Stations for Casual Riders", x = "Station Name", y = "Number of Rides") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+```{r}
+
+# Combine top start and end stations for annual members
+top_start_end_stations_annual <- rbind(top_start_stations_annual, top_end_stations_annual)
+
+# Combine top start and end stations for casual riders
+top_start_end_stations_casual <- rbind(top_start_stations_casual, top_end_stations_casual)
+
+```
+
+
+```{r}
+
+# Add a column to indicate station type (Start or End)
+top_start_stations_annual$type <- "Start"
+top_end_stations_annual$type <- "End"
+
+top_start_stations_casual$type <- "Start"
+top_end_stations_casual$type <- "End"
+
+```
+
+
+```{r}
+
+# Combine top start and end stations for both user groups
+combined_top_stations <- rbind(top_start_stations_annual, top_end_stations_annual,
+                               top_start_stations_casual, top_end_stations_casual)
+
+
+```
+
+
+```{r}
+
+# Create a combined bar chart for top stations
+ggplot(combined_top_stations, aes(x = reorder(start_station_name, -ride_id.x), y = ride_id.x, fill = type)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top Stations by Type and User", x = "Station Name", y = "Number of Rides") +
+  scale_fill_manual(values = c("Start" = "blue", "End" = "red")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+
+```{r}
+
+# Calculate counts for electric and classic bikes by member type
+bike_counts <- all_data %>%
+  group_by(member_casual, rideable_type) %>%
+  summarise(ride_count = n())
+
+```
+
+
+```{r}
+
+# Calculate counts for electric and classic bikes by member type
+bike_counts <- all_data %>%
+  group_by(member_casual, rideable_type) %>%
+  summarise(ride_count = n())
+
+```
+
+
+```{r}
+
+# Calculate percentages within each member type
+bike_counts <- bike_counts %>%
+  group_by(member_casual) %>%
+  mutate(percentage = (ride_count / sum(ride_count)) * 100)
+
+# Create a pie chart with percentage labels
+pie_chart <- ggplot(bike_counts, aes(x = "", y = ride_count, fill = rideable_type)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  facet_grid(.~member_casual) +
+  labs(title = "Percentage of Users by Bike Type",
+       fill = "Bike Type",
+       x = NULL,
+       y = NULL) +
+  theme_void() +
+  theme(legend.position = "right") +
+  geom_text(aes(label = paste0(round(percentage), "%")), position = position_stack(vjust = 0.5))
+
+# Display the pie chart with percentage labels
+print(pie_chart)
+
+```
+
+
+```{r}
+
+# Convert started_at to a datetime format
+all_data$started_at <- as.POSIXct(all_data$started_at)
+
+# Extract the hour and minute of the day from the started_at column
+all_data <- all_data %>%
+  mutate(start_hour = lubridate::hour(started_at),
+         start_minute = lubridate::minute(started_at))
+
+# Calculate the number of rides starting in each hour of the day
+hourly_counts <- all_data %>%
+  group_by(start_hour) %>%
+  summarise(ride_count = n(),
+            start_minute = first(start_minute))
+
+# Find the hour(s) with the highest ride counts
+peak_hours <- hourly_counts %>%
+  filter(ride_count == max(ride_count))
+
+# Create a bar chart to visualize peak usage hours with time labels
+ggplot(hourly_counts, aes(x = start_hour, y = ride_count)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Peak Usage Hours", x = "Hour of the Day", y = "Number of Rides") +
+  geom_text(data = peak_hours, aes(label = paste0(start_hour, ":", sprintf("%02d", start_minute), "\n", ride_count)),
+            vjust = -0.5, size = 4, hjust = 0.5) +
+  scale_x_continuous(breaks = unique(hourly_counts$start_hour), labels = paste0(unique(hourly_counts$start_hour), ":00")) +
+  theme_minimal()
+
+
+```
+
+```{r}
+
+# Convert the 'started_at' column to a date
+all_data$started_at <- as.Date(all_data$started_at)
+
+```
+
+
+```{r}
+
+# Extract the quarter from the date
+library(lubridate)
+
+all_data <- all_data %>%
+  mutate(quarter = quarter(started_at, with_year = TRUE))
+
+```
+
+
+```{r}
+
+# Group by quarter and user type, and calculate ride counts
+ride_counts <- all_data %>%
+  group_by(quarter, member_casual) %>%
+  summarise(ride_count = n())
+
+```
+
+
+```{r}
+
+# Convert the 'started_at' column to a date
+all_data$started_at <- as.Date(all_data$started_at)
+
+```
+
+```{r}
+
+# Extract the quarter from the date
+all_data <- all_data %>%
+  mutate(quarter = quarter(started_at, with_year = TRUE))
+
+
+```
+
+```{r}
+
+# Group by quarter and user type, and calculate ride counts
+ride_counts <- all_data %>%
+  group_by(quarter, member_casual) %>%
+  summarise(ride_count = n())
+
+```
+
+```{r}
+
+# Create a bar chart to visualize ride counts by user type over time
+ggplot(ride_counts, aes(x = quarter, y = ride_count, fill = member_casual)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Ride Count by User Type Over Time",
+       x = "Quarter",
+       y = "Ride Count") +
+  scale_fill_manual(values = c("member" = "blue", "casual" = "red")) +  # Custom colors for user types
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  # Rotate x-axis labels
+  scale_y_continuous(labels = scales::comma)  # Format y-axis labels with commas
+
+
+```
+
