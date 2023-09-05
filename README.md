@@ -8,12 +8,12 @@ Welcome to the Cyclistic Bike-Share Analysis project README. This repository con
 
 Our analysis follows the Case Study Roadmap provided in the project documentation. Here's a summary of my progress:
 
-- **Ask**: We defined the business task and key questions.
-- **Prepare**: We acquired and prepared the data for analysis.
-- **Process**: We cleaned and transformed the data for analysis.
-- **Analyze**: We conducted data analysis to answer key questions.
-- **Share**: We created visualizations and documented key findings.
-- **Act**: We provided recommendations based on our analysis.
+- **Ask**: Defined the business task and key questions.
+- **Prepare**: Acquired and prepared the data for analysis.
+- **Process**: Cleaned and transformed the data for analysis.
+- **Analyze**: Conducted data analysis to answer key questions.
+- **Share**: Created visualizations and documented key findings.
+- **Act**: Provided recommendations based on our analysis.
 
 ## Project Structure
 
